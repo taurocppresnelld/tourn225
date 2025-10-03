@@ -190,6 +190,7 @@ def run_training(model_type, config_path):
             f"/app/sd-scripts/{model_type}_train_network.py",
             "--config_file", config_path
         ]
+
     try:
         print("Starting training subprocess...\n", flush=True)
         process = subprocess.Popen(
