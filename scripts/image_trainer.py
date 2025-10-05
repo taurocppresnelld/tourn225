@@ -30,7 +30,7 @@ from trainer.utils.style_detection import detect_styles_in_prompts
 def get_image_training_config_template_path(model_type: str, train_data_dir: str) -> tuple[str, bool]:
     model_type = model_type.lower()
     if model_type == ImageModelType.SDXL.value:
-        prompts_path = os.path.join(train_data_dir, "10_lora style")
+        prompts_path = os.path.join(train_data_dir, "5_lora style")
         prompts = []
         for file in os.listdir(prompts_path):
             if file.endswith(".txt"):
