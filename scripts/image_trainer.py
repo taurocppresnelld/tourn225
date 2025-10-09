@@ -89,8 +89,14 @@ def get_image_training_config_template_path(model_name: str, model_type: str, tr
                     return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_person.toml"), False
 
         else:
-            print(f"Config: base_diffusion_sdxl_style.toml")
-            return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_style.toml"), True
+            config_file = f"{Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH)}/base_diffusion_sdxl_style_{model_name.split('/', 1)[1].lower()}.toml"
+            print(f"config_file_style1: {config_file}")
+            if os.path.exists(config_file):
+                print(f"Config: {config_file}")
+                return config_file, True
+            else:
+                print(f"Config: base_diffusion_sdxl_style.toml")
+                return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_style.toml"), True
 
     elif model_type == ImageModelType.FLUX.value:
         print(f"Config: base_diffusion_flux.toml")
