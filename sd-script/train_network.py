@@ -518,8 +518,6 @@ class NetworkTrainer:
             args.seed = random.randint(0, 2**32)
         set_seed(args.seed)
 
-        ckpt_loss = 1.0
-
         tokenize_strategy = self.get_tokenize_strategy(args)
         strategy_base.TokenizeStrategy.set_strategy(tokenize_strategy)
         tokenizers = self.get_tokenizers(tokenize_strategy)  # will be removed after sample_image is refactored
@@ -1505,8 +1503,8 @@ class NetworkTrainer:
                             # ckpt_name = train_util.get_step_ckpt_name(args, "." + args.save_model_as, global_step)
                             # save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch)
 
-                            # ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
-                            # save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
+                            ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
+                            save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
 
                             if args.save_state:
                                 train_util.save_and_remove_state_stepwise(args, accelerator, global_step)
@@ -1603,16 +1601,6 @@ class NetworkTrainer:
                         }
                         self.step_logging(accelerator, logs, global_step, epoch=epoch + 1)
 
-                    logger.info(f"ckpt_loss: {ckpt_loss}")
-                    logger.info(f"val_step_loss_recorder: {val_step_loss_recorder.moving_average}")
-                    logger.info(f"loss_recorder: {loss_recorder.moving_average}")
-
-                    if ckpt_loss*1.0 >= val_step_loss_recorder.moving_average:
-                        ckpt_loss = val_step_loss_recorder.moving_average
-
-                        ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
-                        save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
-
                     restore_rng_state(rng_states)
                     args.min_timestep = original_args_min_timestep
                     args.max_timestep = original_args_max_timestep
@@ -1692,16 +1680,6 @@ class NetworkTrainer:
                     }
                     self.epoch_logging(accelerator, logs, global_step, epoch + 1)
 
-                logger.info(f"ckpt_loss: {ckpt_loss}")
-                logger.info(f"val_epoch_loss_recorder: {val_epoch_loss_recorder.moving_average}")
-                logger.info(f"loss_recorder: {loss_recorder.moving_average}")
-
-                if ckpt_loss*1.0 >= val_epoch_loss_recorder.moving_average:
-                    ckpt_loss = val_epoch_loss_recorder.moving_average
-
-                    ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
-                    save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
-
                 restore_rng_state(rng_states)
                 args.min_timestep = original_args_min_timestep
                 args.max_timestep = original_args_max_timestep
@@ -1724,8 +1702,8 @@ class NetworkTrainer:
                     # ckpt_name = train_util.get_epoch_ckpt_name(args, "." + args.save_model_as, epoch + 1)
                     # save_model(ckpt_name, accelerator.unwrap_model(network), global_step, epoch + 1)
 
-                    # ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
-                    # save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
+                    ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
+                    save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
 
                     remove_epoch_no = train_util.get_remove_epoch_no(args, epoch + 1)
                     if remove_epoch_no is not None:
@@ -1754,8 +1732,8 @@ class NetworkTrainer:
             train_util.save_state_on_train_end(args, accelerator)
 
         if is_main_process:
-            # ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
-            # save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
+            ckpt_name = train_util.get_last_ckpt_name(args, "." + args.save_model_as)
+            save_model(ckpt_name, network, global_step, num_train_epochs, force_sync_upload=True)
 
             logger.info("model saved.")
 
@@ -1909,13 +1887,13 @@ def setup_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--validation_split",
         type=float,
-        default=0.1,
+        default=0.0,
         help="Split for validation images out of the training dataset / 学習画像から検証画像に分割する割合",
     )
     parser.add_argument(
         "--validate_every_n_steps",
         type=int,
-        default=100,
+        default=None,
         help="Run validation on validation dataset every N steps. By default, validation will only occur every epoch if a validation dataset is available / 検証データセットの検証をNステップごとに実行します。デフォルトでは、検証データセットが利用可能な場合にのみ、検証はエポックごとに実行されます",
     )
     parser.add_argument(

@@ -27,28 +27,74 @@ from pathlib import Path
 from trainer.utils.style_detection import detect_styles_in_prompts
 
 
-def get_image_training_config_template_path(model_type: str, train_data_dir: str) -> tuple[str, bool]:
+def get_image_training_config_template_path(model_name: str, model_type: str, train_data_dir: str) -> tuple[str, bool]:
     model_type = model_type.lower()
     if model_type == ImageModelType.SDXL.value:
+        is_person = False
         prompts_path = os.path.join(train_data_dir, "5_lora style")
+        print(f"prompts_path: {prompts_path}")
         prompts = []
         for file in os.listdir(prompts_path):
             if file.endswith(".txt"):
                 with open(os.path.join(prompts_path, file), "r") as f:
                     prompt = f.read().strip()
+                    print(f"prompt: {prompt}")
                     prompts.append(prompt)
+                    if "photo of" in prompt or "portrait of" in prompt:
+                        is_person = True
 
         styles = detect_styles_in_prompts(prompts)
         print(f"Styles: {styles}")
 
         if styles:
-            return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_style.toml"), True
+            try:
+                config_file = f"{Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH)}/base_diffusion_sdxl_style_{styles[0][0].split(' ', 1)[0].lower()}.toml"
+                print(f"config_file0: {config_file}")
+                if os.path.exists(config_file):
+                    print(f"Config: {config_file}")
+                    return config_file, True
+                else:
+                    config_file = f"{Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH)}/base_diffusion_sdxl_style_{styles[1][0].split(' ', 1)[0].lower()}.toml"
+                    print(f"config_file1: {config_file}")
+                    if os.path.exists(config_file):
+                        print(f"Config: {config_file}")
+                        return config_file, True
+                    else:
+                        config_file = f"{Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH)}/base_diffusion_sdxl_style_{styles[2][0].split(' ', 1)[0].lower()}.toml"
+                        print(f"config_file2: {config_file}")
+                        if os.path.exists(config_file):
+                            print(f"Config: {config_file}")
+                            return config_file, True
+                        else:
+                            print(f"Config: base_diffusion_sdxl_style.toml")
+                            return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_style.toml"), True
+            except:
+                print(f"Config: base_diffusion_sdxl_style.toml")
+                return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_style.toml"), True
+
+        elif is_person:
+            config_file = f"{Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH)}/base_diffusion_sdxl_person_{model_name.split('/', 1)[1].lower()}.toml"
+            print(f"config_file_person1: {config_file}")
+            if os.path.exists(config_file):
+                print(f"Config: {config_file}")
+                return config_file, True
+            else:
+                config_file = f"{Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH)}/base_diffusion_sdxl_person_{model_name.split('/', 1)[0].lower()}.toml"
+                print(f"config_file_person0: {config_file}")
+                if os.path.exists(config_file):
+                    print(f"Config: {config_file}")
+                    return config_file, True
+                else:
+                    print(f"Config: base_diffusion_sdxl_person.toml")
+                    return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_person.toml"), False
+
         else:
-            return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_person.toml"), False
+            print(f"Config: base_diffusion_sdxl_style.toml")
+            return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_sdxl_style.toml"), True
 
     elif model_type == ImageModelType.FLUX.value:
-        return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_flux.toml"), None
-
+        print(f"Config: base_diffusion_flux.toml")
+        return str(Path(train_cst.IMAGE_CONTAINER_CONFIG_TEMPLATE_PATH) / "base_diffusion_flux.toml"), False
 
 def get_model_path(path: str) -> str:
     if os.path.isdir(path):
@@ -62,7 +108,7 @@ def create_config(task_id, model_path, model_name, model_type, expected_repo_nam
     train_data_dir = train_paths.get_image_training_images_dir(task_id)
 
     """Create the diffusion config file"""
-    config_template_path, is_style = get_image_training_config_template_path(model_type, train_data_dir)
+    config_template_path, is_style = get_image_training_config_template_path(model_name, model_type, train_data_dir)
 
     with open(config_template_path, "r") as file:
         config = toml.load(file)
@@ -171,7 +217,7 @@ def create_config(task_id, model_path, model_name, model_type, expected_repo_nam
         os.makedirs(output_dir, exist_ok=True)
     config["output_dir"] = output_dir
 
-    if model_type == ImageModelType.SDXL.value:
+    if model_type == "sdxl":
         if is_style:
             network_config = config_mapping[network_config_style[model_name]]
         else:
@@ -191,7 +237,7 @@ def create_config(task_id, model_path, model_name, model_type, expected_repo_nam
 def run_training(model_type, config_path):
     print(f"Starting training with config: {config_path}", flush=True)
 
-    if model_type == ImageModelType.SDXL.value:
+    if model_type == "sdxl":
         training_command = [
             "accelerate", "launch",
             "--dynamo_backend", "no",
@@ -203,7 +249,7 @@ def run_training(model_type, config_path):
             f"/app/sd-script/{model_type}_train_network.py",
             "--config_file", config_path
         ]
-    elif model_type == ImageModelType.FLUX.value:
+    elif model_type == "flux":
         training_command = [
             "accelerate", "launch",
             "--dynamo_backend", "no",
