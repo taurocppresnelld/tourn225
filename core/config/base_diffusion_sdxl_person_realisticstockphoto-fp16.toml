@@ -53,18 +53,23 @@ huber_schedule = "snr"
 
 # Optimizer & Scheduler
 optimizer_type = "prodigy"
-optimizer_args = ["decouple=True", "d_coef=2", "weight_decay=0.01", "use_bias_correction=True", "safeguard_warmup=True"]
+optimizer_args = ["decouple=True", "d_coef=1", "weight_decay=0.01", "use_bias_correction=True", "safeguard_warmup=True"]
 learning_rate = 1
 unet_lr = 1
 text_encoder_lr = 1
 lr_scheduler = "cosine"
-lr_warmup_steps = 160
+lr_warmup_steps = 80
 
 # Backend
 dynamo_backend = "no"
 
 # Pretrained Model
 pretrained_model_name_or_path = ""
+
+
+# Noise offset #
+noise_offset_type = "Original"
+noise_offset = 0.0357
 
 network_alpha = -1
 network_dim = -1
